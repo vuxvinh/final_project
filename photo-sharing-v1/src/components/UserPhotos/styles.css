@@ -1,0 +1,8 @@
+.photo-img {
+  width: clamp(240px, 60vw, 600px); 
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 8px;
+  object-fit: contain;
+}
