@@ -1,144 +1,151 @@
-// // const express = require("express");
-// // const User = require("../db/userModel");
-// // const router = express.Router();
-
-// // router.post("/", async (request, response) => {
-  
-// // });
-
-// // router.get("/", async (request, response) => {
-  
-// // });
-
-// // module.exports = router;
-
-// const express = require("express");
-// const mongoose = require("mongoose");
-// const User = require("../db/userModel");
-// const router = express.Router();
-
-// // GET /user/list
-// router.get("/list", async (req, res) => {
-//   try {
-//     const users = await User.find({}, "_id first_name last_name");
-//     res.json(users);
-//   } catch (err) {
-//     res.status(500).send("Server error while fetching user list");
-//   }
-// });
-
-// // GET /user/:id
-// router.get("/:id", async (req, res) => {
-//   const { id } = req.params;
-
-//   if (!mongoose.Types.ObjectId.isValid(id)) {
-//     res.status(400).send("Invalid user id");
-//     return;
-//   }
-
-//   try {
-//     const user = await User.findById(
-//       id,
-//       "_id first_name last_name location description occupation"
-//     );
-//     if (!user) {
-//       res.status(400).send("User not found");
-//       return;
-//     }
-//     res.json(user);
-//   } catch (err) {
-//     res.status(500).send("Server error while fetching user");
-//   }
-// });
-
-// module.exports = router;
-
 const express = require("express");
 const mongoose = require("mongoose");
 const User = require("../db/userModel");
+const Photo = require("../db/photoModel");
 
 const router = express.Router();
 
 /**
- * GET /user/list
+ * POST /user
+ * Register new user
+ * Required: login_name, password, first_name, last_name
  */
-router.get("/list", async (req, res) => {
-  try {
-    const users = await User.find({}, "_id first_name last_name").lean();
-    res.json(users);
-  } catch (err) {
-    res.status(500).send("Internal server error");
-  }
-});
-
-/**
- * GET /user/:id
- */
-router.get("/:id", async (req, res) => {
-  const userId = req.params.id;
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    res.status(400).send("Invalid user id");
-    return;
-  }
-
-  try {
-    const user = await User.findById(
-      userId,
-      "_id first_name last_name location description occupation"
-    ).lean();
-
-    if (!user) {
-      res.status(400).send("User not found");
-      return;
-    }
-
-    res.json(user);
-  } catch (err) {
-    res.status(500).send("Internal server error");
-  }
-});
-
 router.post("/", async (req, res) => {
-  const {
-    login_name,
-    password,
-    first_name,
-    last_name,
-    location = "",
-    description = "",
-    occupation = "",
-  } = req.body;
-
-  const bad = (v) => !v || typeof v !== "string" || v.trim() === "";
-
-  if (bad(login_name) || bad(password) || bad(first_name) || bad(last_name)) {
-    res.status(400).send("Missing required fields");
-    return;
-  }
-
   try {
-    const exists = await User.findOne({ login_name: login_name.trim() }).lean();
-    if (exists) {
-      res.status(400).send("login_name already exists");
-      return;
+    const {
+      login_name,
+      password,
+      first_name,
+      last_name,
+      location = "",
+      description = "",
+      occupation = "",
+    } = req.body || {};
+
+    // required fields
+    if (
+      !String(login_name || "").trim() ||
+      !String(password || "").trim() ||
+      !String(first_name || "").trim() ||
+      !String(last_name || "").trim()
+    ) {
+      return res.status(400).send("login_name, password, first_name, last_name are required");
     }
 
-    const user = new User({
-      login_name: login_name.trim(),
-      password,
-      first_name: first_name.trim(),
-      last_name: last_name.trim(),
-      location,
-      description,
-      occupation,
+    // unique login_name
+    const existed = await User.findOne({ login_name: String(login_name).trim() }).lean();
+    if (existed) {
+      return res.status(400).send("login_name already exists");
+    }
+
+    const created = await User.create({
+      login_name: String(login_name).trim(),
+      password: String(password), // giữ nguyên theo hệ thống hiện tại
+      first_name: String(first_name).trim(),
+      last_name: String(last_name).trim(),
+      location: String(location || "").trim(),
+      description: String(description || "").trim(),
+      occupation: String(occupation || "").trim(),
     });
 
-    await user.save();
-    res.json({ login_name: user.login_name });
-  } catch (err) {
-    res.status(500).send("Internal server error");
+    const obj = created.toObject();
+    delete obj.password; // không trả password về client
+    return res.json(obj);
+  } catch (e) {
+    return res.status(500).send(e.message);
   }
 });
 
+// GET /user/list?search=...
+router.get("/list", async (req, res) => {
+  const search = String(req.query.search || "").trim();
+
+  const filter =
+    search.length > 0
+      ? {
+          $or: [
+            { first_name: { $regex: search, $options: "i" } },
+            { last_name: { $regex: search, $options: "i" } },
+            { login_name: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {};
+
+  const users = await User.find(filter, { first_name: 1, last_name: 1, login_name: 1 }).lean();
+
+  // photo_count
+  const photoAgg = await Photo.aggregate([
+    { $group: { _id: "$user_id", count: { $sum: 1 } } },
+  ]);
+
+  const photoMap = new Map(photoAgg.map((x) => [String(x._id), x.count]));
+
+  // comment_count (đếm comment mà user viết trên mọi ảnh)
+  const commentAgg = await Photo.aggregate([
+    { $unwind: "$comments" },
+    { $group: { _id: "$comments.user_id", count: { $sum: 1 } } },
+  ]);
+
+  const commentMap = new Map(commentAgg.map((x) => [String(x._id), x.count]));
+
+  const result = users.map((u) => ({
+    _id: u._id,
+    first_name: u.first_name,
+    last_name: u.last_name,
+    login_name: u.login_name,
+    photo_count: photoMap.get(String(u._id)) || 0,
+    comment_count: commentMap.get(String(u._id)) || 0,
+  }));
+
+  res.json(result);
+});
+
+// GET /user/:id
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).send("Invalid user id");
+
+  const u = await User.findById(id, {
+    first_name: 1,
+    last_name: 1,
+    location: 1,
+    description: 1,
+    occupation: 1,
+    login_name: 1,
+  }).lean();
+
+  if (!u) return res.status(400).send("User not found");
+  res.json(u);
+});
+
+// PUT /user/:id  (edit profile) - chỉ sửa được chính mình
+router.put("/:id", async (req, res) => {
+  const me = req.session.user?._id;
+  const { id } = req.params;
+
+  if (!me) return res.sendStatus(401);
+  if (String(me) !== String(id)) return res.sendStatus(403);
+
+  const { first_name, last_name, location, description, occupation } = req.body;
+
+  // required fields
+  if (!String(first_name || "").trim() || !String(last_name || "").trim()) {
+    return res.status(400).send("first_name and last_name are required");
+  }
+
+  const updated = await User.findByIdAndUpdate(
+    id,
+    {
+      first_name: String(first_name).trim(),
+      last_name: String(last_name).trim(),
+      location: String(location || "").trim(),
+      description: String(description || "").trim(),
+      occupation: String(occupation || "").trim(),
+    },
+    { new: true }
+  ).lean();
+
+  return res.json(updated);
+});
 
 module.exports = router;

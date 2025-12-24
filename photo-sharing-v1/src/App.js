@@ -1,54 +1,13 @@
-// import './App.css';
-
-// import React from "react";
-// import { Grid, Typography, Paper } from "@mui/material";
-// import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-
-// import TopBar from "./components/TopBar";
-// import UserDetail from "./components/UserDetail";
-// import UserList from "./components/UserList";
-// import UserPhotos from "./components/UserPhotos";
-
-// const App = (props) => {
-//   return (
-//       <Router>
-//         <div>
-//           <Grid container spacing={2}>
-//             <Grid item xs={12}>
-//               <TopBar />
-//             </Grid>
-//             <div className="main-topbar-buffer" />
-//             <Grid item sm={3}>
-//               <Paper className="main-grid-item">
-//                 <UserList />
-//               </Paper>
-//             </Grid>
-//             <Grid item sm={9}>
-//               <Paper className="main-grid-item">
-//                 <Routes>
-//                   <Route
-//                       path="/users/:userId"
-//                       element = {<UserDetail />}
-//                   />
-//                   <Route
-//                       path="/photos/:userId"
-//                       element = {<UserPhotos />}
-//                   />
-//                   <Route path="/users" element={<UserList />} />
-//                 </Routes>
-//               </Paper>
-//             </Grid>
-//           </Grid>
-//         </div>
-//       </Router>
-//   );
-// }
-
-// export default App;
-
 import React, { useEffect, useState } from "react";
-import { Grid } from "@mui/material";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Grid, Box } from "@mui/material";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+import "./App.css";
 
 import TopBar from "./components/TopBar";
 import UserList from "./components/UserList";
@@ -58,26 +17,23 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import fetchModel from "./lib/fetchModelData";
 
-import "./App.css";
-
 function App() {
   const [loggedInUser, setLoggedInUser] = useState(null);
-  const navigate = useNavigate();
+  const [advanced, setAdvanced] = useState(false);
 
-  // restore session nếu refresh
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // restore session
   useEffect(() => {
     fetchModel("/admin/session")
       .then((u) => setLoggedInUser(u))
-      .catch(() => {
-        setLoggedInUser(null);
-        navigate("/login", { replace: true });
-      });
-    // eslint-disable-next-line
+      .catch(() => setLoggedInUser(null));
   }, []);
 
-  const handleLoginSuccess = (user) => {
-    setLoggedInUser(user);
-    navigate(`/users/${user._id}`);
+  const handleLoginSuccess = (u) => {
+    setLoggedInUser(u);
+    navigate(`/users/${u._id}`);
   };
 
   const handleLogout = () => {
@@ -90,24 +46,24 @@ function App() {
   };
 
   const handleUploadPhoto = (file) => {
-  const formData = new FormData();
-  formData.append("photo", file);
+    if (!loggedInUser) return;
 
-  fetchModel("/photos/new", {
-    method: "POST",
-    body: formData,
-  })
-    .then(() => {
-      if (loggedInUser?._id) navigate(`/photos/${loggedInUser._id}`);
-    })
-    .catch((err) => console.error(err));
+    const form = new FormData();
+    form.append("photo", file);
+
+    fetchModel("/photos/new", { method: "POST", body: form })
+      .then(() => navigate(`/photos/${loggedInUser._id}`))
+      .catch((e) => console.error(e));
   };
-
 
   const RequireAuth = ({ children }) => {
     if (!loggedInUser) return <Navigate to="/login" replace />;
     return children;
   };
+
+  // detect auth pages
+  const isAuthPage =
+    location.pathname === "/login" || location.pathname === "/register";
 
   return (
     <div>
@@ -115,52 +71,84 @@ function App() {
         loggedInUser={loggedInUser}
         onLogout={handleLogout}
         onUploadPhoto={handleUploadPhoto}
+        advanced={advanced}
+        onAdvancedChange={setAdvanced}
       />
 
       <div className="main-topbar-buffer" />
 
-      <Grid container spacing={2}>
-        <Grid item xs={3}>
-          {loggedInUser ? <UserList loggedInUser={loggedInUser} /> : null}
-        </Grid>
-
-        <Grid item xs={9} className="main-content">
+      {/* AUTH PAGES */}
+      {isAuthPage ? (
+        <Box
+          sx={{
+            minHeight: "calc(100vh - 64px)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 2,
+          }}
+        >
           <Routes>
-            {/* LOGIN */}
             <Route
               path="/login"
               element={<Login onLoginSuccess={handleLoginSuccess} />}
             />
-
-            {/* REGISTER */}
             <Route path="/register" element={<Register />} />
-
-            {/* USER DETAIL */}
-            <Route
-              path="/users/:userId"
-              element={
-                <RequireAuth>
-                  <UserDetail />
-                </RequireAuth>
-              }
-            />
-
-            {/* USER PHOTOS */}
-            <Route
-              path="/photos/:userId"
-              element={
-                <RequireAuth>
-                  <UserPhotos loggedInUser={loggedInUser} />
-                </RequireAuth>
-              }
-            />
-
-            {/* DEFAULT */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
+        </Box>
+      ) : (
+        /* APP PAGES */
+        <Grid container spacing={2}>
+          <Grid item xs={3} className="user-list-panel">
+            <UserList loggedInUser={loggedInUser} />
+          </Grid>
+
+          <Grid item xs={9} className="main-content">
+            <Routes>
+              <Route
+                path="/users/:userId"
+                element={
+                  <RequireAuth>
+                    {/* truyền advanced để UserDetail có thể dùng nếu bạn muốn */}
+                    <UserDetail loggedInUser={loggedInUser} advanced={advanced} />
+                  </RequireAuth>
+                }
+              />
+
+              {/* Normal */}
+              <Route
+                path="/photos/:userId"
+                element={
+                  <RequireAuth>
+                    <UserPhotos loggedInUser={loggedInUser} advanced={advanced} />
+                  </RequireAuth>
+                }
+              />
+
+              {/* Advanced route: 1 ảnh cụ thể + next/prev */}
+              <Route
+                path="/photos/:userId/:photoId"
+                element={
+                  <RequireAuth>
+                    <UserPhotos loggedInUser={loggedInUser} advanced={advanced} />
+                  </RequireAuth>
+                }
+              />
+
+              <Route
+                path="*"
+                element={
+                  <Navigate
+                    to={loggedInUser ? `/users/${loggedInUser._id}` : "/login"}
+                    replace
+                  />
+                }
+              />
+            </Routes>
+          </Grid>
         </Grid>
-      </Grid>
+      )}
     </div>
   );
 }

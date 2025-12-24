@@ -1,8 +1,30 @@
+.user-photos {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.photo-card {
+  margin-top: 16px;
+}
+
 .photo-img {
-  width: clamp(240px, 60vw, 600px); 
-  max-width: 100%;
-  height: auto;
+  width: 500px;
+  height: 300px;
+
+  object-fit: contain;      /* KHÔNG cắt, thu nhỏ cho vừa */
+  object-position: center;  /* căn giữa */
+
   display: block;
   margin-top: 8px;
-  object-fit: contain;
+
+  background: #f5f5f5;      /* nền cho phần trống (tuỳ chọn) */
+  border: 1px solid #e0e0e0;/* viền nhẹ (tuỳ chọn) */
+  border-radius: 6px;       /* tuỳ chọn */
+}
+
+
+
+.add-comment {
+  margin-top: 8px;
 }

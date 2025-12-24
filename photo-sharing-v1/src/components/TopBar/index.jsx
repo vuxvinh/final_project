@@ -1,94 +1,90 @@
-// import React from "react";
-// import { AppBar, Toolbar, Typography } from "@mui/material";
-
-// import {Link, useLocation, useParams} from 'react-router-dom'
-// import models from '../../modelData/models'
-
-// import "./styles.css";
-
-// /**
-//  * Define TopBar, a React component of Project 4.
-//  */
-// function TopBar () {
-//   const location = useLocation();
-//   const path = location.pathname;
-
-//   let rightText = '';
-
-//   if (path.startsWith('/users/')) {
-//     const userId = path.split('/')[2];
-//     const user = models.userModel(userId);
-//     if (user) {
-//       rightText = `${user.first_name} ${user.last_name}`;
-//     }
-//   }
-
-//   if (path.startsWith('/photos/')) {
-//     const userId = path.split('/')[2];
-//     const user = models.userModel(userId);
-//     if (user) {
-//       rightText = `Photos of ${user.first_name} ${user.last_name}`;
-//     }
-//   }
-  
-//   return (
-//     <AppBar position="static">
-//       <Toolbar style={{ display: 'flex', justifyContent: 'space-between'}}>
-//         <Typography variant="h6">
-//           Vu Quang Vinh
-//         </Typography>
-
-//         <Typography variant="h6">
-//           {rightText}
-//         </Typography>
-//       </Toolbar>
-//     </AppBar>
-//   );
-// }
-
-// export default TopBar;
-
 import React, { useRef } from "react";
-import { AppBar, Toolbar, Typography, Button } from "@mui/material";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+} from "@mui/material";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
-function TopBar({ loggedInUser, onLogout, onUploadPhoto }) {
+function TopBar({
+  loggedInUser,
+  onLogout,
+  onUploadPhoto,
+  advanced,
+  onAdvancedChange,
+}) {
   const fileInputRef = useRef(null);
 
-  const handlePick = () => fileInputRef.current?.click();
+  const handleChooseFile = () => {
+    if (!loggedInUser) return;
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
 
-  const handleFile = (e) => {
-    const f = e.target.files?.[0];
-    if (f && typeof onUploadPhoto === "function") {
-      onUploadPhoto(f);
-    }
+  const handleFileSelected = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    onUploadPhoto && onUploadPhoto(file);
     e.target.value = "";
   };
 
   return (
-    <AppBar position="absolute">
-      <Toolbar>
-        <Typography variant="h6" color="inherit" style={{ flexGrow: 1 }}>
+    <AppBar
+      position="fixed"
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 100, // ✅ luôn nằm trên content
+      }}
+    >
+      <Toolbar sx={{ pointerEvents: "auto" }}>
+        <Typography variant="h6" sx={{ flexGrow: 1 }}>
           {loggedInUser ? `Hi ${loggedInUser.first_name}` : "Please Login"}
         </Typography>
 
+        {/* ✅ clickable area */}
+        <FormControlLabel
+          sx={{
+            mr: 2,
+            color: "white",
+            userSelect: "none",
+            pointerEvents: "auto",
+            "& .MuiFormControlLabel-label": { cursor: "pointer" },
+          }}
+          control={
+            <Checkbox
+              checked={!!advanced}
+              onChange={(e) =>
+                onAdvancedChange && onAdvancedChange(e.target.checked)
+              }
+              sx={{
+                color: "white",
+                "&.Mui-checked": { color: "white" },
+                cursor: "pointer",
+              }}
+            />
+          }
+          label="Enable Advanced Features"
+        />
+
         {loggedInUser ? (
-          <>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button color="inherit" onClick={handleChooseFile}>
+              ADD PHOTO
+            </Button>
+            <Button color="inherit" onClick={onLogout}>
+              LOGOUT
+            </Button>
+
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
               style={{ display: "none" }}
-              onChange={handleFile}
+              onChange={handleFileSelected}
             />
-
-            <Button color="inherit" onClick={handlePick}>
-              Add Photo
-            </Button>
-
-            <Button color="inherit" onClick={onLogout}>
-              Logout
-            </Button>
-          </>
+          </Box>
         ) : null}
       </Toolbar>
     </AppBar>
@@ -96,4 +92,3 @@ function TopBar({ loggedInUser, onLogout, onUploadPhoto }) {
 }
 
 export default TopBar;
-

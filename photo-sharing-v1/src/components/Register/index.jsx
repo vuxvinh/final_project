@@ -1,11 +1,5 @@
 import React, { useState } from "react";
-import {
-  Button,
-  TextField,
-  Typography,
-  Paper,
-  Link,
-} from "@mui/material";
+import { Button, TextField, Typography, Paper, Link } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import fetchModel from "../../lib/fetchModelData";
 
@@ -25,6 +19,17 @@ function Register() {
     setErr("");
     setMsg("");
 
+    if (
+      !r.login_name.trim() ||
+      !r.password.trim() ||
+      !r.password2.trim() ||
+      !r.first_name.trim() ||
+      !r.last_name.trim()
+    ) {
+      setErr("All required fields must be filled");
+      return;
+    }
+
     if (r.password !== r.password2) {
       setErr("Passwords do not match");
       return;
@@ -34,15 +39,15 @@ function Register() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        login_name: r.login_name,
+        login_name: r.login_name.trim(),
         password: r.password,
-        first_name: r.first_name,
-        last_name: r.last_name,
+        first_name: r.first_name.trim(),
+        last_name: r.last_name.trim(),
       }),
     })
       .then(() => {
         setMsg("Register success. Please login.");
-        setTimeout(() => navigate("/login"), 1000);
+        setTimeout(() => navigate("/login"), 700);
       })
       .catch((e) => setErr(e.message));
   };
@@ -52,28 +57,28 @@ function Register() {
       <Typography variant="h6">Register</Typography>
 
       <TextField
-        label="Login name"
+        label="Login name *"
         fullWidth
         margin="normal"
         value={r.login_name}
         onChange={(e) => setR({ ...r, login_name: e.target.value })}
       />
       <TextField
-        label="First name"
+        label="First name *"
         fullWidth
         margin="normal"
         value={r.first_name}
         onChange={(e) => setR({ ...r, first_name: e.target.value })}
       />
       <TextField
-        label="Last name"
+        label="Last name *"
         fullWidth
         margin="normal"
         value={r.last_name}
         onChange={(e) => setR({ ...r, last_name: e.target.value })}
       />
       <TextField
-        label="Password"
+        label="Password *"
         type="password"
         fullWidth
         margin="normal"
@@ -81,7 +86,7 @@ function Register() {
         onChange={(e) => setR({ ...r, password: e.target.value })}
       />
       <TextField
-        label="Confirm password"
+        label="Confirm password *"
         type="password"
         fullWidth
         margin="normal"

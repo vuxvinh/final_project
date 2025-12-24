@@ -1,0 +1,28 @@
+.user-comments {
+  width: 100%;
+  min-width: 0;
+}
+
+.comment-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 12px;
+}
+
+.thumb {
+  width: 120px;
+  height: auto;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.comment-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.clickable {
+  cursor: pointer;
+  word-break: break-word;
+}

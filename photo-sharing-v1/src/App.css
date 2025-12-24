@@ -6,3 +6,32 @@
   height: calc(100vh - 85px);
   padding: 10px;
 }
+
+/* Để nội dung sát ngay dưới TopBar */
+.main-topbar-buffer {
+  height: 0;
+}
+
+
+.main-content {
+  padding: 8px 24px 24px 24px; /* sát trên, thoáng dưới */
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+
+/* Sidebar user list: cho đẹp + không dính sát */
+.user-list-panel {
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* Fix ảnh không tràn layout (nếu bạn dùng) */
+.photo-img {
+  width: clamp(260px, 55vw, 600px);
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 8px;
+  object-fit: contain;
+}

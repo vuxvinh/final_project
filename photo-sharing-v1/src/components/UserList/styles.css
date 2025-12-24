@@ -1,0 +1,13 @@
+/* cả khung UserList */
+.user-list {
+  padding-left: 16px;   /* đẩy sang phải */
+  padding-right: 8px;
+  box-sizing: border-box;
+}
+
+/* tiêu đề Users */
+.user-list-title {
+  padding-left: 4px;
+  margin-bottom: 6px;
+}
+

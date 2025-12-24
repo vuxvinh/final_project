@@ -11,24 +11,27 @@ function Login({ onLoginSuccess }) {
 
   const login = () => {
     setErr("");
+
+    if (!loginName.trim() || !password.trim()) {
+      setErr("Login name and password are required");
+      return;
+    }
+
     fetchModel("/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        login_name: loginName,
-        password,
-      }),
+      body: JSON.stringify({ login_name: loginName.trim(), password }),
     })
       .then((u) => onLoginSuccess(u))
       .catch((e) => setErr(e.message));
   };
 
   return (
-    <Paper style={{ padding: 20, maxWidth: 400 }}>
+    <Paper style={{ padding: 20, maxWidth: 420 }}>
       <Typography variant="h6">Login</Typography>
 
       <TextField
-        label="Login name"
+        label="Login name *"
         fullWidth
         margin="normal"
         value={loginName}
@@ -36,7 +39,7 @@ function Login({ onLoginSuccess }) {
       />
 
       <TextField
-        label="Password"
+        label="Password *"
         type="password"
         fullWidth
         margin="normal"
